@@ -1,1 +1,1 @@
-{"name":"Апрель · база квартир","short_name":"Апрель","start_url":"./","scope":"./","display":"standalone","background_color":"#f3f4f2","theme_color":"#1d7a4c","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{"name":"APREL · база квартир","short_name":"APREL","start_url":"./","scope":"./","display":"standalone","background_color":"#f2f1ee","theme_color":"#121212","icons":[{"src":"icon.png","sizes":"512x512","type":"image/png","purpose":"any maskable"},{"src":"icon.svg","sizes":"any","type":"image/svg+xml"}]}
