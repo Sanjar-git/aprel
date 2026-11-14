@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1d7a4c">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Апрель">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231d7a4c'/%3E%3Cpath d='M18 40 32 20l14 20z' fill='%23fff'/%3E%3C/svg%3E">
+<style>html{color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Апрель · база квартир</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Golos+Text:wght@500;600;700&display=swap">
+<style>
+/* Layout: sticky search bar + chip strip over a card feed; filters in a bottom sheet (phone) / side panel (desktop); edit in a second sheet. */
+:root{
+  --bg:#f3f4f2; --surface:#ffffff; --surface-2:#e9ebe7; --fg:#17201b; --muted:#66706a; --line:#d9ddd8;
+  --accent:#1d7a4c; --accent-fg:#ffffff; --accent-soft:#dff1e6;
+  --warn:#b7791f; --warn-soft:#fbefd6; --danger:#b3261e; --danger-soft:#f9e1df;
+  --shadow:0 6px 24px rgba(23,32,27,.10);
+  --ui:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --display:"Golos Text","Manrope",system-ui,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#121614; --surface:#1b211d; --surface-2:#242b26; --fg:#eef1ee; --muted:#9aa49d; --line:#2f3732;
+  --accent:#4fc083; --accent-fg:#0d1a12; --accent-soft:#1f3a2b;
+  --warn:#e2aa4a; --warn-soft:#3a2d14; --danger:#f28b82; --danger-soft:#3d1f1d;
+  --shadow:0 6px 24px rgba(0,0,0,.45); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#121614; --surface:#1b211d; --surface-2:#242b26; --fg:#eef1ee; --muted:#9aa49d; --line:#2f3732;
+  --accent:#4fc083; --accent-fg:#0d1a12; --accent-soft:#1f3a2b;
+  --warn:#e2aa4a; --warn-soft:#3a2d14; --danger:#f28b82; --danger-soft:#3d1f1d;
+  --shadow:0 6px 24px rgba(0,0,0,.45); color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.app{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 96px}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 8px;border-bottom:1px solid var(--line)}
+.top-in{max-width:1100px;margin:0 auto;display:grid;gap:10px}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.logo i{width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block}
+.tools{display:flex;gap:6px}.tbtn{height:32px;padding:0 10px;border-radius:9px;background:var(--surface-2);font-weight:600;font-size:12.5px;white-space:nowrap}.tbtn:hover{background:var(--accent-soft);color:var(--accent)}
+.status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.status b{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn)}
+.status.ok b{background:var(--accent)}
+.status.err b{background:var(--danger)}
+.searchrow{display:flex;gap:8px}
+.search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--surface-2);border-radius:12px;padding:0 12px;height:44px}
+.search input{flex:1;min-width:0;border:0;background:none;height:100%;font-size:15px}
+.search input::placeholder{color:var(--muted)}
+.search svg{flex:none;color:var(--muted)}
+.fbtn{height:44px;padding:0 14px;border-radius:12px;background:var(--surface-2);font-weight:600;display:flex;align-items:center;gap:6px;position:relative;white-space:nowrap}
+.fbtn .n{background:var(--accent);color:var(--accent-fg);border-radius:999px;font-size:12px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:13.5px;transition:background .15s,border-color .15s}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.chip.sep{width:1px;padding:0;border:0;background:var(--line);height:22px;align-self:center}
+
+/* results */
+.meta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:14px 10px;flex-wrap:wrap}
+.meta h1{margin:0;font-family:var(--display);font-size:17px;font-weight:600}
+.meta h1 span{color:var(--muted);font-weight:500}
+.sort{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted)}
+.sort select{border:1px solid var(--line);background:var(--surface);border-radius:8px;height:32px;padding:0 8px;font-weight:600;color:var(--fg)}
+.grid{display:grid;gap:10px;grid-template-columns:1fr}
+@media (min-width:640px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:960px){.grid{grid-template-columns:repeat(3,1fr)}}
+
+.card{background:var(--surface);border-radius:var(--r);padding:14px 14px 12px;text-align:left;display:grid;gap:6px;border:1px solid transparent;transition:border-color .15s,transform .15s;min-width:0;width:100%}
+.card:hover{border-color:var(--line)}
+.card:active{transform:scale(.99)}
+.price{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.price small{font-family:var(--ui);font-size:12.5px;font-weight:500;color:var(--muted)}
+.price.note{font-size:15px;color:var(--warn)}
+.title{font-weight:700;font-size:15px}
+.loc{color:var(--muted);font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:2px}
+.tag{font-size:12px;font-weight:600;padding:3px 8px;border-radius:7px;background:var(--surface-2);color:var(--fg)}
+.tag.ok{background:var(--accent-soft);color:var(--accent)}
+.tag.box{background:var(--warn-soft);color:var(--warn)}
+.tag.kind{background:var(--danger-soft);color:var(--danger)}
+.foot{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.foot b{font-weight:600;color:var(--fg)}
+
+.empty{padding:48px 16px;text-align:center;color:var(--muted);display:grid;gap:8px;justify-items:center}
+.empty h2{margin:0;font-family:var(--display);font-size:18px;color:var(--fg);font-weight:600;text-wrap:balance}
+.more{display:block;width:100%;margin-top:14px;height:46px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-weight:600}
+.more:hover{border-color:var(--accent)}
+
+/* fab */
+.fab{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));height:54px;padding:0 20px 0 16px;border-radius:999px;background:var(--accent);color:var(--accent-fg);font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);z-index:6}
+.fab svg{flex:none}
+
+/* sheets */
+.scrim{position:fixed;inset:0;background:rgba(10,14,12,.45);z-index:20;opacity:0;transition:opacity .2s}
+.scrim.on{opacity:1}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:20px 20px 0 0;max-height:92%;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s cubic-bezier(.2,.8,.2,1);padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet.on{transform:none}
+@media (min-width:760px){
+  .sheet{left:auto;top:0;bottom:0;width:440px;max-height:none;border-radius:0;transform:translateX(100%)}
+  .sheet.on{transform:none}
+}
+.sh-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px 10px;border-bottom:1px solid var(--line);flex:none}
+.sh-head h2{margin:0;font-family:var(--display);font-size:18px;font-weight:600}
+.sh-body{overflow-y:auto;padding:14px 18px;display:grid;gap:18px;flex:1;min-height:0}
+.sh-foot{display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--line);flex:none;background:var(--surface)}
+.btn{height:46px;padding:0 18px;border-radius:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:1;transition:filter .15s}
+.btn:hover{filter:brightness(1.05)}
+.btn.p{background:var(--accent);color:var(--accent-fg)}
+.btn.s{background:var(--surface-2)}
+.btn.d{background:var(--danger-soft);color:var(--danger)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.x{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2)}
+
+.f{display:grid;gap:8px}
+.f label,.f .lbl{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.in{height:44px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--surface);width:100%;min-width:0;font-variant-numeric:tabular-nums}
+.in:focus{border-color:var(--accent)}
+textarea.in{height:auto;min-height:72px;padding:10px 12px;resize:vertical}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg .chip{height:36px}
+.opt{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.opt:last-child{border-bottom:0}
+.opt input{width:18px;height:18px;accent-color:var(--accent)}
+.opt .cnt{margin-left:auto;color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.zones{max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:4px 12px}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14.5px;padding:6px 0}
+.toggle input{width:18px;height:18px;accent-color:var(--accent)}
+
+/* detail */
+.d-price{font-family:var(--display);font-size:28px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.d-sub{color:var(--muted);font-size:13.5px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kv div{background:var(--surface-2);border-radius:10px;padding:10px 12px;min-width:0}
+.kv small{display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.kv b{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.confirm{background:var(--danger-soft);border-radius:12px;padding:12px 14px;display:grid;gap:10px;color:var(--danger)}
+.confirm .btns{display:flex;gap:8px}
+.confirm .btns .btn{height:40px}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;opacity:0;transition:.2s;z-index:30;pointer-events:none;max-width:calc(100% - 32px)}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.err{font-size:13px;color:var(--danger)}
+</style>
+
+<div class="app">
+  <header class="top"><div class="top-in">
+    <div class="brand">
+      <div class="logo"><i></i>Апрель · база квартир</div>
+      <div class="tools"><span class="status" id="status"><b></b><span>Загрузка…</span></span><button class="tbtn" id="dlXlsx" type="button" title="Экспорт в Excel">Excel</button><button class="tbtn" id="whoBtn" type="button" title="Режим редактирования">Войти</button></div>
+    </div>
+    <div class="searchrow">
+      <label class="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Район, ориентир, код (Т1234), агент" autocomplete="off">
+      </label>
+      <button class="fbtn" id="openFilters" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        Фильтры <span class="n" id="fcount" hidden>0</span>
+      </button>
+    </div>
+    <div class="chips" id="chips">
+      <button class="chip" type="button" data-rooms="1" aria-pressed="false">1-комн.</button>
+      <button class="chip" type="button" data-rooms="2" aria-pressed="false">2-комн.</button>
+      <button class="chip" type="button" data-rooms="3" aria-pressed="false">3-комн.</button>
+      <button class="chip" type="button" data-rooms="4" aria-pressed="false">4+</button>
+      <span class="chip sep"></span>
+      <button class="chip" type="button" data-cond="С ремонтом" aria-pressed="false">Таёр · с ремонтом</button>
+      <button class="chip" type="button" data-cond="Коробка" aria-pressed="false">Коробка</button>
+    </div>
+  </div></header>
+
+  <div class="meta">
+    <h1 id="count">Квартиры <span>—</span></h1>
+    <div class="sort">Сортировка
+      <select id="sort">
+        <option value="new">сначала новые</option>
+        <option value="priceAsc">дешевле</option>
+        <option value="priceDesc">дороже</option>
+        <option value="areaDesc">больше м²</option>
+        <option value="ppm">дешевле за м²</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>
+    <h2 id="emptyTitle">База загружается</h2>
+    <div id="emptyText">Добавить объект можно кнопкой «Добавить» или импортом из Excel.</div>
+  </div>
+  <button class="more" id="more" type="button" hidden>Показать ещё</button>
+</div>
+
+<button class="fab" id="addBtn" type="button">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Добавить
+</button>
+
+<div class="scrim" id="scrim" hidden></div>
+
+<!-- filters -->
+<section class="sheet" id="filters" aria-label="Фильтры">
+  <div class="sh-head"><h2>Фильтры</h2><button class="x" type="button" data-close aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="sh-body">
+    <div class="f"><div class="lbl">Цена, $</div><div class="row2"><input class="in" id="pMin" type="number" inputmode="numeric" placeholder="от"><input class="in" id="pMax" type="number" inputmode="numeric" placeholder="до"></div></div>
+    <div class="f"><div class="lbl">Комнат</div><div class="seg" id="roomsSeg">
+      <button class="chip" type="button" data-r="1" aria-pressed="false">1</button><button class="chip" type="button" data-r="2" aria-pressed="false">2</button><button class="chip" type="button" data-r="3" aria-pressed="false">3</button><button class="chip" type="button" data-r="4" aria-pressed="false">4</button><button class="chip" type="button" data-r="5" aria-pressed="false">5+</button>
+    </div></div>
+    <div class="f"><div class="lbl">Площадь, м²</div><div class="row2"><input class="in" id="aMin" type="number" inputmode="numeric" placeholder="от"><input class="in" id="aMax" type="number" inputmode="numeric" placeholder="до"></div></div>
+    <div class="f"><div class="lbl">Состояние</div><div class="seg" id="condSeg">
+      <button class="chip" type="button" data-c="С ремонтом" aria-pressed="false">Таёр · с ремонтом</button><button class="chip" type="button" data-c="Коробка" aria-pressed="false">Коробка</button>
+    </div></div>
+    <div class="f"><div class="lbl">Район</div><div class="zones" id="zones"></div></div>
+    <div class="f"><div class="lbl">Этаж</div><div class="row2"><input class="in" id="fMin" type="number" inputmode="numeric" placeholder="от"><input class="in" id="fMax" type="number" inputmode="numeric" placeholder="до"></div>
+      <label class="toggle">Не первый этаж<input type="checkbox" id="noFirst"></label>
+      <label class="toggle">Не последний этаж<input type="checkbox" id="noLast"></label>
+    </div>
+    <div class="f"><div class="lbl">Этажность дома</div><div class="row2"><input class="in" id="bMin" type="number" inputmode="numeric" placeholder="от"><input class="in" id="bMax" type="number" inputmode="numeric" placeholder="до"></div></div>
+    <div class="f"><label for="agentSel">Агент</label><select class="in" id="agentSel"><option value="">Все</option></select></div>
+    <div class="f"><label for="kindSel">Тип объекта</label><select class="in" id="kindSel"><option value="">Все</option><option>Квартира</option><option>Участок</option><option>Магазин</option></select></div>
+  </div>
+  <div class="sh-foot"><button class="btn s" type="button" id="resetF">Сбросить</button><button class="btn p" type="button" id="applyF">Показать</button></div>
+</section>
+
+<!-- detail -->
+<section class="sheet" id="detail" aria-label="Объект">
+  <div class="sh-head"><h2 id="dTitle">Объект</h2><button class="x" type="button" data-close aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="sh-body" id="dBody"></div>
+  <div class="sh-foot" id="dFoot"></div>
+</section>
+
+<!-- edit / add -->
+<section class="sheet" id="edit" aria-label="Редактирование">
+  <div class="sh-head"><h2 id="eTitle">Новый объект</h2><button class="x" type="button" data-close aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <form class="sh-body" id="eForm" novalidate>
+    <div class="row2">
+      <div class="f"><label for="eCode">Код</label><input class="in" id="eCode" placeholder="Т1420"></div>
+      <div class="f"><label for="eKind">Тип</label><select class="in" id="eKind"><option>Квартира</option><option>Участок</option><option>Магазин</option></select></div>
+    </div>
+    <div class="row2">
+      <div class="f"><label for="ePrice">Цена, $</label><input class="in" id="ePrice" type="number" inputmode="numeric" placeholder="45000"></div>
+      <div class="f"><label for="eRooms">Комнат</label><input class="in" id="eRooms" type="number" inputmode="numeric" placeholder="2"></div>
+    </div>
+    <div class="row2">
+      <div class="f"><label for="eArea">Площадь, м²</label><input class="in" id="eArea" type="number" inputmode="decimal" step="0.1" placeholder="70"></div>
+      <div class="f"><label for="eCond">Состояние</label><select class="in" id="eCond"><option value="С ремонтом">Таёр · с ремонтом</option><option value="Коробка">Коробка</option><option value="Белая отделка">Белая отделка</option><option value="">Не указано</option></select></div>
+    </div>
+    <div class="row2">
+      <div class="f"><label for="eFloor">Этаж</label><input class="in" id="eFloor" type="number" inputmode="numeric" placeholder="3"></div>
+      <div class="f"><label for="eFloors">Этажность</label><input class="in" id="eFloors" type="number" inputmode="numeric" placeholder="9"></div>
+    </div>
+    <div class="f"><label for="eZone">Район</label><select class="in" id="eZone"></select></div>
+    <div class="f"><label for="eDistrict">Ориентир</label><input class="in" id="eDistrict" placeholder="Крытый рынок, 17-мактаб"></div>
+    <div class="row2">
+      <div class="f"><label for="eAgent">Агент</label><input class="in" id="eAgent" list="agentList" placeholder="Алишер"><datalist id="agentList"></datalist></div>
+      <div class="f"><label for="eDate">Дата</label><input class="in" id="eDate" type="date"></div>
+    </div>
+    <div class="f"><label for="ePriceNote">Цена прописью (если не в $)</label><input class="in" id="ePriceNote" placeholder="кв 6 300 000 сум за м²"></div>
+    <div class="f"><label for="eNote">Заметка</label><textarea class="in" id="eNote" placeholder="Торг, документы, телефон владельца…"></textarea></div>
+    <div class="err" id="eErr"></div>
+  </form>
+  <div class="sh-foot"><button class="btn s" type="button" data-close>Отмена</button><button class="btn p" type="button" id="eSave">Сохранить</button></div>
+</section>
+
+<div class="toast" id="toast"></div>
+<section class="sheet" id="login" aria-label="Вход">
+  <div class="sh-head"><h2>Режим редактирования</h2><button class="x" type="button" data-close aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="sh-body">
+    <div class="d-sub">Смотреть базу могут все. Чтобы добавлять и менять объекты, введите имя и код агентства.</div>
+    <div class="f"><label for="lName">Ваше имя</label><input class="in" id="lName" placeholder="Алишер" autocomplete="name"></div>
+    <div class="f"><label for="lPin">Код агентства</label><input class="in" id="lPin" type="password" inputmode="numeric" placeholder="••••" autocomplete="off"></div>
+    <div class="err" id="lErr"></div>
+    <div id="lOut" hidden><button class="btn s" type="button" id="logout">Выйти из режима редактирования</button></div>
+  </div>
+  <div class="sh-foot"><button class="btn s" type="button" data-close>Отмена</button><button class="btn p" type="button" id="lGo">Войти</button></div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+const ZONES=["Бухара сити","5-микрорайон","6-микрорайон","7-микрорайон","Крытый рынок","Горгаз","Шарк","Маслозавод","Экскаваторный","Голубой экран","Файзиобод","Теракзор","Динамо","Гор. больница / Шербудин","11-поликлиника","Медиапарк / Вокзал","Корзинка","Технологический","Аэропорт","Моника / Чевар","Шайхул олам","Кафе Бахор","Северный","17-мактаб","Другое"];
+const $=id=>document.getElementById(id);
+const fmt=n=>new Intl.NumberFormat('ru-RU').format(Math.round(n));
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const roomsWord=r=>r==null?'':(r+'-комн.');
+const today=()=>new Date().toISOString().slice(0,10);
+
+let items=[]; let db=null; let canWrite=true; let loaded=false;
+let shown=60; const PAGE=60;
+const F={q:'',rooms:new Set(),cond:new Set(),zones:new Set(),pMin:null,pMax:null,aMin:null,aMax:null,fMin:null,fMax:null,bMin:null,bMax:null,noFirst:false,noLast:false,agent:'',kind:''};
+let sort='new';
+try{sort=localStorage.getItem('aprel.sort')||'new';$('sort').value=sort}catch(e){}
+
+/* ---------- status ---------- */
+function setStatus(cls,text){const s=$('status');s.className='status '+cls;s.querySelector('span').textContent=text}
+let toastT;function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),2200)}
+
+/* ---------- zones list in filter & edit ---------- */
+ZONES.forEach(z=>{
+  const l=document.createElement('label');l.className='opt';
+  l.innerHTML=`<input type="checkbox" value="${esc(z)}"><span>${esc(z)}</span><span class="cnt" data-z="${esc(z)}"></span>`;
+  $('zones').appendChild(l);
+  const o=document.createElement('option');o.textContent=z;$('eZone').appendChild(o);
+});
+
+/* ---------- filtering ---------- */
+function matches(d){
+  if(F.kind&&d.kind!==F.kind)return false;
+  if(F.q){const q=F.q; const hay=((d.district||'')+' '+(d.zone||'')+' '+(d.code||'')+' '+(d.agent||'')+' '+(d.note||'')).toLowerCase(); if(!hay.includes(q))return false}
+  if(F.rooms.size){const r=d.rooms; if(r==null)return false; if(!F.rooms.has(Math.min(r,7)))return false}
+  if(F.cond.size&&!F.cond.has(d.cond))return false;
+  if(F.zones.size&&!F.zones.has(d.zone))return false;
+  if(F.pMin!=null||F.pMax!=null){ if(d.price==null)return false; if(F.pMin!=null&&d.price<F.pMin)return false; if(F.pMax!=null&&d.price>F.pMax)return false }
+  if(F.aMin!=null&&!(d.area>=F.aMin))return false;
+  if(F.aMax!=null&&!(d.area<=F.aMax))return false;
+  if(F.fMin!=null&&!(d.floor>=F.fMin))return false;
+  if(F.fMax!=null&&!(d.floor<=F.fMax))return false;
+  if(F.bMin!=null&&!(d.floors>=F.bMin))return false;
+  if(F.bMax!=null&&!(d.floors<=F.bMax))return false;
+  if(F.noFirst&&d.floor===1)return false;
+  if(F.noLast&&d.floor!=null&&d.floors!=null&&d.floor===d.floors)return false;
+  if(F.agent&&d.agent!==F.agent)return false;
+  return true;
+}
+const ppm=d=>(d.price!=null&&d.area)?d.price/d.area:null;
+function sorter(a,b){
+  switch(sort){
+    case 'priceAsc':return (a.price??1e12)-(b.price??1e12);
+    case 'priceDesc':return (b.price??-1)-(a.price??-1);
+    case 'areaDesc':return (b.area??0)-(a.area??0);
+    case 'ppm':return (ppm(a)??1e12)-(ppm(b)??1e12);
+    default:return (b.createdAt||'').localeCompare(a.createdAt||'')||b.id.localeCompare(a.id);
+  }
+}
+function activeCount(){
+  let n=0;
+  if(F.rooms.size)n++; if(F.cond.size)n++; if(F.zones.size)n++;
+  if(F.pMin!=null||F.pMax!=null)n++; if(F.aMin!=null||F.aMax!=null)n++;
+  if(F.fMin!=null||F.fMax!=null||F.noFirst||F.noLast)n++; if(F.bMin!=null||F.bMax!=null)n++;
+  if(F.agent)n++; if(F.kind)n++;
+  return n;
+}
+
+/* ---------- render ---------- */
+function card(d){
+  const priceHtml=d.price!=null
+    ?`<div class="price">${fmt(d.price)} $ ${ppm(d)?`<small>${fmt(ppm(d))} $/м²</small>`:''}</div>`
+    :`<div class="price note">${esc(d.priceNote||'цена не указана')}</div>`;
+  const parts=[];
+  if(d.kind!=='Квартира')parts.push(d.kind); else if(d.rooms!=null)parts.push(roomsWord(d.rooms));
+  if(d.area)parts.push((d.kind==='Участок'?d.area+' сот.':d.area+' м²'));
+  if(d.floor!=null)parts.push(d.floor+(d.floors?'/'+d.floors:'')+' эт.');
+  const condTag=d.cond==='С ремонтом'?'<span class="tag ok">Таёр · с ремонтом</span>':d.cond==='Коробка'?'<span class="tag box">Коробка</span>':d.cond?`<span class="tag">${esc(d.cond)}</span>`:'';
+  const kindTag=d.kind!=='Квартира'?`<span class="tag kind">${esc(d.kind)}</span>`:'';
+  return `<button class="card" type="button" data-id="${esc(d.id)}">
+    ${priceHtml}
+    <div class="title">${esc(parts.join(' · '))||'Без параметров'}</div>
+    <div class="loc" title="${esc(d.district)}">${(d.district||'').toLowerCase().startsWith((d.zone||'').toLowerCase())?esc(d.district):esc(d.zone)+(d.district?' · '+esc(d.district):'')}</div>
+    <div class="tags">${kindTag}${condTag}${d.note?'<span class="tag">заметка</span>':''}</div>
+    <div class="foot"><span>${esc(d.code||'—')}${d.agent?' · <b>'+esc(d.agent)+'</b>':''}</span><span>${esc(fmtDate(d.date||d.createdAt))}</span></div>
+  </button>`;
+}
+function fmtDate(s){if(!s)return'';const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);return m?`${m[3]}.${m[2]}.${m[1].slice(2)}`:s}
+let current=[];
+function render(){
+  current=items.filter(matches).sort(sorter);
+  const total=items.length, n=current.length;
+  $('count').innerHTML=`${F.kind||'Объекты'} <span>${n}${n!==total?' из '+total:''}</span>`;
+  const c=activeCount();$('fcount').hidden=!c;$('fcount').textContent=c;
+  const grid=$('grid');
+  const slice=current.slice(0,shown);
+  grid.innerHTML=slice.map(card).join('');
+  $('more').hidden=current.length<=shown;
+  if(current.length>shown)$('more').textContent=`Показать ещё (${current.length-shown})`;
+  const empty=$('empty');
+  if(!loaded&&!items.length){empty.hidden=false;$('emptyTitle').textContent='База загружается';$('emptyText').textContent='Через секунду здесь появятся квартиры.'}
+  else if(!items.length){empty.hidden=false;$('emptyTitle').textContent='База пока пустая';$('emptyText').textContent='Нажмите «Добавить», чтобы внести первый объект.'}
+  else if(!n){empty.hidden=false;$('emptyTitle').textContent='Ничего не найдено';$('emptyText').textContent='Ослабьте фильтры или измените запрос.'}
+  else empty.hidden=true;
+  // zone counts (under current filters except zone)
+  const save=F.zones;F.zones=new Set();const cnt={};items.forEach(d=>{if(matches(d))cnt[d.zone]=(cnt[d.zone]||0)+1});F.zones=save;
+  document.querySelectorAll('#zones .cnt').forEach(el=>el.textContent=cnt[el.dataset.z]||'');
+}
+$('more').onclick=()=>{shown+=PAGE;render()};
+
+/* agents */
+function refreshAgents(){
+  const ag=[...new Set(items.map(d=>d.agent).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
+  const sel=$('agentSel');const v=sel.value;sel.innerHTML='<option value="">Все</option>'+ag.map(a=>`<option>${esc(a)}</option>`).join('');sel.value=v;
+  $('agentList').innerHTML=ag.map(a=>`<option value="${esc(a)}">`).join('');
+}
+
+/* ---------- quick chips ---------- */
+document.querySelectorAll('#chips .chip[data-rooms]').forEach(b=>b.onclick=()=>{
+  const r=+b.dataset.rooms;const on=b.getAttribute('aria-pressed')==='true';
+  if(on){F.rooms.delete(r);if(r===4)[5,6,7].forEach(x=>F.rooms.delete(x))}else{F.rooms.add(r);if(r===4)[5,6,7].forEach(x=>F.rooms.add(x))}
+  syncRoomsUI();shown=PAGE;render();
+});
+document.querySelectorAll('#chips .chip[data-cond]').forEach(b=>b.onclick=()=>{
+  const c=b.dataset.cond;if(F.cond.has(c))F.cond.delete(c);else F.cond.add(c);syncCondUI();shown=PAGE;render();
+});
+function syncRoomsUI(){
+  document.querySelectorAll('#chips .chip[data-rooms]').forEach(b=>{const r=+b.dataset.rooms;b.setAttribute('aria-pressed',String(F.rooms.has(r)))});
+  document.querySelectorAll('#roomsSeg .chip').forEach(b=>{const r=+b.dataset.r;b.setAttribute('aria-pressed',String(F.rooms.has(r)))});
+}
+function syncCondUI(){document.querySelectorAll('[data-cond],[data-c]').forEach(b=>b.setAttribute('aria-pressed',String(F.cond.has(b.dataset.cond||b.dataset.c))))}
+document.querySelectorAll('#roomsSeg .chip').forEach(b=>b.onclick=()=>{const r=+b.dataset.r;if(F.rooms.has(r)){F.rooms.delete(r);if(r===5)[6,7].forEach(x=>F.rooms.delete(x))}else{F.rooms.add(r);if(r===5)[6,7].forEach(x=>F.rooms.add(x))}syncRoomsUI()});
+document.querySelectorAll('#condSeg .chip').forEach(b=>b.onclick=()=>{const c=b.dataset.c;if(F.cond.has(c))F.cond.delete(c);else F.cond.add(c);syncCondUI()});
+
+let qT;$('q').oninput=e=>{clearTimeout(qT);qT=setTimeout(()=>{F.q=e.target.value.trim().toLowerCase();shown=PAGE;render()},150)};
+$('sort').onchange=e=>{sort=e.target.value;try{localStorage.setItem('aprel.sort',sort)}catch(x){}render()};
+
+/* ---------- sheets ---------- */
+let openSheet=null;
+function open(id){closeAll();const s=$(id);openSheet=s;const sc=$('scrim');sc.hidden=false;requestAnimationFrame(()=>{sc.classList.add('on');s.classList.add('on')});document.body.style.overflow='hidden'}
+function closeAll(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on'));const sc=$('scrim');sc.classList.remove('on');setTimeout(()=>{if(!openSheet)sc.hidden=true},200);openSheet=null;document.body.style.overflow=''}
+$('scrim').onclick=closeAll;
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeAll);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
+
+/* filters sheet */
+$('openFilters').onclick=()=>open('filters');
+const num=id=>{const v=$(id).value.trim();return v===''?null:+v};
+$('applyF').onclick=()=>{
+  F.pMin=num('pMin');F.pMax=num('pMax');F.aMin=num('aMin');F.aMax=num('aMax');F.fMin=num('fMin');F.fMax=num('fMax');F.bMin=num('bMin');F.bMax=num('bMax');
+  F.noFirst=$('noFirst').checked;F.noLast=$('noLast').checked;F.agent=$('agentSel').value;F.kind=$('kindSel').value;
+  F.zones=new Set([...document.querySelectorAll('#zones input:checked')].map(i=>i.value));
+  shown=PAGE;render();closeAll();
+};
+$('resetF').onclick=()=>{
+  ['pMin','pMax','aMin','aMax','fMin','fMax','bMin','bMax'].forEach(id=>$(id).value='');
+  $('noFirst').checked=false;$('noLast').checked=false;$('agentSel').value='';$('kindSel').value='';
+  document.querySelectorAll('#zones input').forEach(i=>i.checked=false);
+  F.rooms.clear();F.cond.clear();syncRoomsUI();syncCondUI();
+  $('applyF').click();
+};
+
+/* ---------- detail ---------- */
+$('grid').addEventListener('click',e=>{const b=e.target.closest('.card');if(b)showDetail(b.dataset.id)});
+function showDetail(id){
+  const d=items.find(x=>x.id===id);if(!d)return;
+  $('dTitle').textContent=(d.kind==='Квартира'?roomsWord(d.rooms)+' квартира':d.kind)+(d.code?' · '+d.code:'');
+  const kv=[
+    ['Площадь',d.area?(d.kind==='Участок'?d.area+' сот.':d.area+' м²'):'—'],
+    ['Комнат',d.rooms??'—'],['Этаж',d.floor!=null?d.floor+(d.floors?' из '+d.floors:''):'—'],
+    ['Состояние',d.cond==='С ремонтом'?'Таёр · с ремонтом':(d.cond||'—')],
+    ['Район',d.zone],['Ориентир',d.district||'—'],['Агент',d.agent||'—'],['Дата',fmtDate(d.date||d.createdAt)||'—'],...(d.updatedBy?[['Изменил',d.updatedBy]]:[]),
+  ];
+  $('dBody').innerHTML=`
+    <div><div class="d-price">${d.price!=null?fmt(d.price)+' $':esc(d.priceNote||'Цена не указана')}</div>
+    <div class="d-sub">${d.price!=null&&ppm(d)?fmt(ppm(d))+' $ за м²':''}${d.priceNote&&d.price!=null?' · '+esc(d.priceNote):''}</div></div>
+    <div class="kv">${kv.map(([k,v])=>`<div><small>${k}</small><b>${esc(v)}</b></div>`).join('')}</div>
+    ${d.note?`<div class="f"><div class="lbl">Заметка</div><div>${esc(d.note)}</div></div>`:''}
+    <div id="dConfirm"></div>`;
+  $('dFoot').innerHTML=canWrite?`<button class="btn d" type="button" id="dDel">Удалить</button><button class="btn p" type="button" id="dEdit">Изменить</button>`:`<button class="btn s" type="button" id="dLogin">Войти, чтобы изменить</button>`;
+  if(!canWrite)$('dLogin').onclick=()=>open('login');
+  if(canWrite){
+    $('dEdit').onclick=()=>openEdit(d);
+    $('dDel').onclick=()=>{$('dConfirm').innerHTML=`<div class="confirm"><div>Удалить объект ${esc(d.code||'')}? Это нельзя отменить.</div><div class="btns"><button class="btn s" type="button" id="cNo">Оставить</button><button class="btn d" type="button" id="cYes">Удалить</button></div></div>`;
+      $('cNo').onclick=()=>$('dConfirm').innerHTML='';
+      $('cYes').onclick=async()=>{$('cYes').disabled=true;const r=await fetch(SB_URL+'flats?id=eq.'+d.id,{method:'DELETE',headers:H()}).catch(()=>({status:0}));if(r.ok){items=items.filter(x=>x.id!==d.id);refreshAgents();render();toast('Удалено');closeAll()}else{$('dConfirm').innerHTML=`<div class="err">Не удалось удалить: ${esc(await writeErr(r))}</div>`}};
+    };
+  }
+  open('detail');
+}
+
+/* ---------- edit / add ---------- */
+let editing=null;
+function openEdit(d){
+  editing=d||null;
+  $('eTitle').textContent=d?'Изменить объект':'Новый объект';
+  $('eCode').value=d?.code||'';$('eKind').value=d?.kind||'Квартира';$('ePrice').value=d?.price??'';$('eRooms').value=d?.rooms??'';
+  $('eArea').value=d?.area??'';$('eCond').value=d?.cond??'С ремонтом';$('eFloor').value=d?.floor??'';$('eFloors').value=d?.floors??'';
+  $('eZone').value=d?.zone||'Крытый рынок';$('eDistrict').value=d?.district||'';$('eAgent').value=d?.agent||'';
+  $('eDate').value=d?.date||today();$('ePriceNote').value=d?.priceNote||'';$('eNote').value=d?.note||'';$('eErr').textContent='';
+  open('edit');
+}
+$('addBtn').onclick=()=>{if(!canWrite){open('login');return}openEdit(null)};
+const vnum=id=>{const v=$(id).value.trim();return v===''?null:Number(v)};
+$('eSave').onclick=async()=>{
+  const doc={
+    code:$('eCode').value.trim().toUpperCase(),kind:$('eKind').value,price:vnum('ePrice'),rooms:vnum('eRooms'),area:vnum('eArea'),
+    cond:$('eCond').value,floor:vnum('eFloor'),floors:vnum('eFloors'),zone:$('eZone').value,district:$('eDistrict').value.trim(),
+    agent:$('eAgent').value.trim(),date:$('eDate').value||today(),priceNote:$('ePriceNote').value.trim(),note:$('eNote').value.trim(),
+    createdAt:editing?.createdAt||today(),
+  };
+  if(doc.price==null&&!doc.priceNote){$('eErr').textContent='Укажите цену в $ или прописью.';return}
+  if(doc.kind==='Квартира'&&doc.rooms==null){$('eErr').textContent='Укажите число комнат.';return}
+  if(!doc.district&&!doc.zone){$('eErr').textContent='Укажите район.';return}
+  $('eSave').disabled=true;
+  try{
+    const r=editing
+      ?await fetch(SB_URL+'flats?id=eq.'+editing.id,{method:'PATCH',headers:H({'Prefer':'return=representation'}),body:JSON.stringify(toRow(doc))})
+      :await fetch(SB_URL+'flats',{method:'POST',headers:H({'Prefer':'return=representation'}),body:JSON.stringify(toRow(doc))});
+    if(!r.ok){$('eErr').textContent='Не удалось сохранить: '+await writeErr(r);$('eSave').disabled=false;return}
+    const saved=fromRow((await r.json())[0]);
+    const i=items.findIndex(x=>x.id===saved.id);if(i>=0)items[i]=saved;else items.push(saved);
+    refreshAgents();render();toast(editing?'Сохранено':'Добавлено');closeAll();
+  }catch(e){$('eErr').textContent='Нет связи с базой.'}
+  $('eSave').disabled=false;
+};
+
+/* ---------- data (Supabase) ---------- */
+const SB_URL='https://hyjrnqriexntknvviyuo.supabase.co/rest/v1/';
+const SB_KEY='sb_publishable_iIucxGdYGR01fKS0TwZQAw_elwik0qL';
+let pin='',who='';
+try{pin=localStorage.getItem('aprel.pin')||'';who=localStorage.getItem('aprel.who')||''}catch(e){}
+const H=(extra={})=>({'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json',...(pin?{'x-pin':pin}:{}),...extra});
+const fromRow=r=>({id:r.id,code:r.code||'',kind:r.kind||'Квартира',rooms:r.rooms,area:r.area!=null?+r.area:null,cond:r.cond||'',district:r.district||'',zone:r.zone||'',floor:r.floor,floors:r.floors,price:r.price!=null?+r.price:null,priceNote:r.price_note||'',agent:r.agent||'',date:r.date||'',note:r.note||'',createdAt:(r.created_at||'').slice(0,10),updatedBy:r.updated_by||''});
+const toRow=d=>({code:d.code,kind:d.kind,rooms:d.rooms,area:d.area,cond:d.cond,district:d.district,zone:d.zone,floor:d.floor,floors:d.floors,price:d.price,price_note:d.priceNote,agent:d.agent,date:d.date||null,note:d.note,updated_at:new Date().toISOString(),updated_by:who});
+async function loadAll(){
+  setStatus('','Загрузка…');
+  try{
+    let all=[],from=0;
+    while(true){
+      const r=await fetch(SB_URL+'flats?select=*&order=id.asc',{headers:H({'Range':from+'-'+(from+999)})});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const page=await r.json(); all=all.concat(page); if(page.length<1000)break; from+=1000;
+    }
+    items=all.map(fromRow); loaded=true; setStatus('ok',items.length+' объектов'); refreshAgents(); render();
+  }catch(e){loaded=true;setStatus('err','Нет связи с базой');render();toast('Не удалось загрузить базу')}
+}
+function applyAuth(){canWrite=!!pin;$('addBtn').hidden=!canWrite;$('whoBtn').textContent=canWrite?(who||'Редактор'):'Войти'}
+applyAuth(); loadAll();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!openSheet)loadAll()});
+
+/* login */
+$('whoBtn').onclick=()=>{$('lName').value=who;$('lPin').value='';$('lErr').textContent='';$('lOut').hidden=!pin;open('login')};
+$('lGo').onclick=async()=>{
+  const n=$('lName').value.trim(),p=$('lPin').value.trim();
+  if(!n){$('lErr').textContent='Введите имя.';return}
+  if(!p){$('lErr').textContent='Введите код.';return}
+  $('lGo').disabled=true;
+  try{
+    const r=await fetch(SB_URL+'rpc/check_pin',{method:'POST',headers:H(),body:JSON.stringify({p})});
+    const ok=(await r.text())==='true';
+    if(!ok){$('lErr').textContent='Код неверный.';$('lGo').disabled=false;return}
+    pin=p;who=n;try{localStorage.setItem('aprel.pin',pin);localStorage.setItem('aprel.who',who)}catch(e){}
+    applyAuth();closeAll();toast('Здравствуйте, '+who);
+  }catch(e){$('lErr').textContent='Нет связи с базой.'}
+  $('lGo').disabled=false;
+};
+$('logout').onclick=()=>{pin='';try{localStorage.removeItem('aprel.pin')}catch(e){}applyAuth();closeAll();toast('Режим просмотра')};
+async function writeErr(r){if(r.status===401||r.status===403){pin='';try{localStorage.removeItem('aprel.pin')}catch(e){}applyAuth();return 'Код больше не действует, войдите заново.'}return 'Ошибка '+r.status}
+
+/* excel */
+const stamp=()=>new Date().toISOString().slice(0,10);
+$('dlXlsx').onclick=()=>{
+  if(!window.XLSX){toast('Excel недоступен без интернета');return}
+  const rows=current.map(d=>({'Код':d.code,'Тип':d.kind,'Комнат':d.rooms,'Площадь':d.area,'Состояние':d.cond,'Район':d.zone,'Ориентир':d.district,'Этаж':d.floor,'Этажность':d.floors,'Цена $':d.price,'Цена текстом':d.priceNote,'Агент':d.agent,'Дата':d.date,'Заметка':d.note,'Кто менял':d.updatedBy}));
+  const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'База');
+  XLSX.writeFile(wb,'aprel-baza-'+stamp()+'.xlsx');
+};
+const ZRX=[["Бухара сити",/бухара сити|бахара сити|бухара мити|латтико|латико|аура|турон|карвон|нихол/],["5-микрорайон",/5-микр|5 микр|5-мкр|5 мкр|5мкр|орбита|сомий|мега маркет/],["6-микрорайон",/6-микр|6-мкр|6мкр|янги узбекистон|чинор|чинар/],["7-микрорайон",/7-микр|7-мкр|7мкр/],["Крытый рынок",/крыт/],["Горгаз",/горгаз|гор\.газ|гор газ/],["Шарк",/шарк/],["Маслозавод",/маслозавод|масло завод|малозавод|детск|гарден/],["Экскаваторный",/эксковатор|экскаватор/],["Голубой экран",/голубой экран/],["Файзиобод",/файз/],["Теракзор",/теракзор/],["Динамо",/динамо/],["Гор. больница / Шербудин",/шербуд|гор больница|гор\.больница|гор\. больница|горбольница|ирригац/],["11-поликлиника",/11|русалка|пиридастгир/],["Медиапарк / Вокзал",/медиа|вокзал|вогзал/],["Корзинка",/корзинка/],["Технологический",/технологич|хамкорбанк|мафтуна/],["Аэропорт",/аэропорт/],["Моника / Чевар",/моника|чевар|сахарн/],["Шайхул олам",/шайхул/],["Кафе Бахор",/бахор/],["Северный",/северный/],["17-мактаб",/17/]];
+function guessZone(d){d=(d||'').toLowerCase();for(const [z,rx] of ZRX)if(rx.test(d))return z;return 'Другое'}
+$('eDistrict').addEventListener('change',()=>{if(!editing)$('eZone').value=guessZone($('eDistrict').value)});
+})();
+</script>
+
+</body>
+</html>
