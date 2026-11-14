@@ -56,7 +56,7 @@ button{cursor:pointer;border:0;background:none;padding:0}
 .logo{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
 .logo i{width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block}
 .tools{display:flex;gap:6px}.tbtn{height:32px;padding:0 10px;border-radius:9px;background:var(--surface-2);font-weight:600;font-size:12.5px;white-space:nowrap}.tbtn:hover{background:var(--accent-soft);color:var(--accent)}
-.status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}@media (max-width:520px){.status span{display:none}}
 .status b{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn)}
 .status.ok b{background:var(--accent)}
 .status.err b{background:var(--danger)}
@@ -454,7 +454,7 @@ $('resetF').onclick=()=>{
 /* ---------- detail ---------- */
 $('grid').addEventListener('click',e=>{const b=e.target.closest('.card');if(b)showDetail(b.dataset.id)});
 function showDetail(id){
-  const d=items.find(x=>x.id===id);if(!d)return;
+  const d=items.find(x=>String(x.id)===String(id));if(!d)return;
   $('dTitle').textContent=(d.kind==='Квартира'?roomsWord(d.rooms)+' квартира':d.kind)+(d.code?' · '+d.code:'');
   const kv=[
     ['Площадь',d.area?(d.kind==='Участок'?d.area+' сот.':d.area+' м²'):'—'],
