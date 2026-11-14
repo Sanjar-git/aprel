@@ -110,6 +110,19 @@ button{cursor:pointer;border:0;background:none;padding:0}
 .tag.box{background:var(--warn-soft);color:var(--warn)}
 .tag.kind{background:var(--danger-soft);color:var(--danger)}
 .foot{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.ph{position:relative;margin:-14px -14px 6px;aspect-ratio:4/3;max-width:none;width:calc(100% + 28px);overflow:hidden;border-radius:var(--r) var(--r) 0 0;background:var(--surface-2)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .n{position:absolute;right:8px;bottom:8px;background:rgba(18,18,18,.78);color:#fff;font-size:12px;font-weight:600;padding:3px 8px;border-radius:7px}
+.gal{display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;margin:0 -18px;padding:0 18px 4px}
+.gal a{flex:none;width:min(78%,300px);aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:var(--surface-2)}
+.gal img{width:100%;height:100%;object-fit:cover;display:block}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.th{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--surface-2)}
+.th img{width:100%;height:100%;object-fit:cover;display:block}
+.th.up{display:grid;place-items:center;font-size:12px;color:var(--muted)}
+.th .x{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:8px;background:rgba(18,18,18,.78);color:#fff}
+.addph{height:44px;border:1px dashed var(--line);border-radius:10px;background:var(--surface);font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.addph:hover{border-color:var(--ink)}
 .foot b{font-weight:600;color:var(--fg)}
 
 .empty{padding:48px 16px;text-align:center;color:var(--muted);display:grid;gap:8px;justify-items:center}
@@ -285,6 +298,7 @@ textarea.in{height:auto;min-height:72px;padding:10px 12px;resize:vertical}
       <div class="f"><label for="eDate">Дата</label><input class="in" id="eDate" type="date"></div>
     </div>
     <div class="f"><label for="ePriceNote">Цена прописью (если не в $)</label><input class="in" id="ePriceNote" placeholder="кв 6 300 000 сум за м²"></div>
+    <div class="f"><div class="lbl">Фото</div><div class="thumbs" id="eThumbs"></div><button class="addph" type="button" id="addPh"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Добавить фото</button><input type="file" id="phFile" accept="image/*" multiple hidden></div>
     <div class="f"><label for="eNote">Заметка</label><textarea class="in" id="eNote" placeholder="Торг, документы, телефон владельца…"></textarea></div>
     <div class="err" id="eErr"></div>
   </form>
@@ -295,7 +309,7 @@ textarea.in{height:auto;min-height:72px;padding:10px 12px;resize:vertical}
 <section class="sheet" id="login" aria-label="Вход">
   <div class="sh-head"><h2>Режим редактирования</h2><button class="x" type="button" data-close aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
   <div class="sh-body">
-    <div class="d-sub">Смотреть базу могут все. Введите имя и код: код агента позволяет добавлять объекты, код администратора — ещё изменять и удалять.</div>
+    <div class="d-sub">Смотреть базу могут все. Введите имя и код: код агента позволяет добавлять и изменять объекты и фото, код администратора — ещё и удалять.</div>
     <div class="f"><label for="lName">Ваше имя</label><input class="in" id="lName" placeholder="Алишер" autocomplete="name"></div>
     <div class="f"><label for="lPin">Код</label><input class="in" id="lPin" type="password" inputmode="numeric" placeholder="••••" autocomplete="off"></div>
     <div class="err" id="lErr"></div>
@@ -381,8 +395,9 @@ function card(d){
   if(d.floor!=null)parts.push(d.floor+(d.floors?'/'+d.floors:'')+' эт.');
   const condTag=d.cond==='С ремонтом'?'<span class="tag ok">Таёр · с ремонтом</span>':d.cond==='Коробка'?'<span class="tag box">Коробка</span>':d.cond?`<span class="tag">${esc(d.cond)}</span>`:'';
   const kindTag=d.kind!=='Квартира'?`<span class="tag kind">${esc(d.kind)}</span>`:'';
+  const ph=d.photos&&d.photos.length?`<div class="ph"><img src="${esc(phSrc(d.photos[0]))}" alt="" loading="lazy">${d.photos.length>1?`<span class="n">${d.photos.length} фото</span>`:''}</div>`:'';
   return `<button class="card" type="button" data-id="${esc(d.id)}">
-    ${priceHtml}
+    ${ph}${priceHtml}
     <div class="title">${esc(parts.join(' · '))||'Без параметров'}</div>
     <div class="loc" title="${esc(d.district)}">${(d.district||'').toLowerCase().startsWith((d.zone||'').toLowerCase())?esc(d.district):esc(d.zone)+(d.district?' · '+esc(d.district):'')}</div>
     <div class="tags">${kindTag}${condTag}${d.note?'<span class="tag">заметка</span>':''}</div>
@@ -478,13 +493,14 @@ function showDetail(id){
   $('dBody').innerHTML=`
     <div><div class="d-price">${d.price!=null?fmt(d.price)+' $':esc(d.priceNote||'Цена не указана')}</div>
     <div class="d-sub">${d.price!=null&&ppm(d)?fmt(ppm(d))+' $ за м²':''}${d.priceNote&&d.price!=null?' · '+esc(d.priceNote):''}</div></div>
+    ${d.photos&&d.photos.length?`<div class="gal">${d.photos.map(p=>`<a href="${esc(phSrc(p))}" target="_blank" rel="noopener"><img src="${esc(phSrc(p))}" alt="" loading="lazy"></a>`).join('')}</div>`:''}
     <div class="kv">${kv.map(([k,v])=>`<div><small>${k}</small><b>${esc(v)}</b></div>`).join('')}</div>
     ${d.note?`<div class="f"><div class="lbl">Заметка</div><div>${esc(d.note)}</div></div>`:''}
     <div id="dConfirm"></div>`;
-  $('dFoot').innerHTML=isAdmin()?`<button class="btn d" type="button" id="dDel">Удалить</button><button class="btn p" type="button" id="dEdit">Изменить</button>`:canWrite?`<div class="d-sub">Изменять и удалять может только администратор</div>`:`<button class="btn s" type="button" id="dLogin">Войти</button>`;
+  $('dFoot').innerHTML=isAdmin()?`<button class="btn d" type="button" id="dDel">Удалить</button><button class="btn p" type="button" id="dEdit">Изменить</button>`:canWrite?`<button class="btn p" type="button" id="dEdit">Изменить</button>`:`<button class="btn s" type="button" id="dLogin">Войти</button>`;
   if(!canWrite)$('dLogin').onclick=()=>open('login');
+  if(canWrite)$('dEdit').onclick=()=>openEdit(d);
   if(isAdmin()){
-    $('dEdit').onclick=()=>openEdit(d);
     $('dDel').onclick=()=>{$('dConfirm').innerHTML=`<div class="confirm"><div>Удалить объект ${esc(d.code||'')}? Это нельзя отменить.</div><div class="btns"><button class="btn s" type="button" id="cNo">Оставить</button><button class="btn d" type="button" id="cYes">Удалить</button></div></div>`;
       $('cNo').onclick=()=>$('dConfirm').innerHTML='';
       $('cYes').onclick=async()=>{$('cYes').disabled=true;const r=await fetch(SB_URL+'flats?id=eq.'+d.id,{method:'DELETE',headers:H()}).catch(()=>({status:0}));if(r.ok){items=items.filter(x=>x.id!==d.id);refreshAgents();render();toast('Удалено');closeAll()}else{$('dConfirm').innerHTML=`<div class="err">Не удалось удалить: ${esc(await writeErr(r))}</div>`}};
@@ -494,9 +510,37 @@ function showDetail(id){
 }
 
 /* ---------- edit / add ---------- */
-let editing=null;
+let editing=null, ePhotos=[];
+function renderThumbs(){
+  $('eThumbs').innerHTML=ePhotos.map((p,i)=>typeof p==='string'
+    ?`<div class="th"><img src="${esc(phSrc(p))}" alt="">${isAdmin()?`<button class="x" type="button" data-rm="${i}" aria-label="Убрать фото">✕</button>`:''}</div>`
+    :`<div class="th up">${p.err?'Ошибка':'Загрузка…'}</div>`).join('');
+}
+$('eThumbs').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(!b)return;ePhotos.splice(+b.dataset.rm,1);renderThumbs()});
+$('addPh').onclick=()=>$('phFile').click();
+async function shrink(file){
+  const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)});
+  const max=1600,k=Math.min(1,max/Math.max(img.width,img.height));
+  const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);
+  return new Promise(r=>c.toBlob(r,'image/jpeg',0.82));
+}
+$('phFile').onchange=async e=>{
+  const files=[...e.target.files];e.target.value='';
+  for(const f of files){
+    const slot={err:false};ePhotos.push(slot);renderThumbs();
+    try{
+      const blob=await shrink(f);
+      const path=(editing?editing.id:'new')+'/'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)+'.jpg';
+      const r=await fetch(PH_URL.replace('/object/public/','/object/')+path,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'image/jpeg','x-pin':pin},body:blob});
+      if(!r.ok)throw new Error(r.status);
+      ePhotos[ePhotos.indexOf(slot)]=path;
+    }catch(err){slot.err=true;toast('Не удалось загрузить фото');setTimeout(()=>{const i=ePhotos.indexOf(slot);if(i>=0){ePhotos.splice(i,1);renderThumbs()}},1500)}
+    renderThumbs();
+  }
+};
 function openEdit(d){
-  editing=d||null;
+  editing=d||null;ePhotos=d?[...(d.photos||[])]:[];renderThumbs();
   $('eTitle').textContent=d?'Изменить объект':'Новый объект';
   $('eCode').value=d?.code||'';$('eKind').value=d?.kind||'Квартира';$('ePrice').value=d?.price??'';$('eRooms').value=d?.rooms??'';
   $('eArea').value=d?.area??'';$('eCond').value=d?.cond??'С ремонтом';$('eFloor').value=d?.floor??'';$('eFloors').value=d?.floors??'';
@@ -512,7 +556,9 @@ $('eSave').onclick=async()=>{
     cond:$('eCond').value,floor:vnum('eFloor'),floors:vnum('eFloors'),zone:$('eZone').value,district:$('eDistrict').value.trim(),
     agent:$('eAgent').value.trim(),date:$('eDate').value||today(),priceNote:$('ePriceNote').value.trim(),note:$('eNote').value.trim(),
     createdAt:editing?.createdAt||today(),
+    photos:ePhotos.filter(p=>typeof p==='string'),
   };
+  if(ePhotos.some(p=>typeof p!=='string')){$('eErr').textContent='Дождитесь загрузки фото.';return}
   if(doc.price==null&&!doc.priceNote){$('eErr').textContent='Укажите цену в $ или прописью.';return}
   if(doc.kind==='Квартира'&&doc.rooms==null){$('eErr').textContent='Укажите число комнат.';return}
   if(!doc.district&&!doc.zone){$('eErr').textContent='Укажите район.';return}
@@ -536,8 +582,10 @@ let pin='',who='',role='';
 try{pin=localStorage.getItem('aprel.pin')||'';who=localStorage.getItem('aprel.who')||'';role=localStorage.getItem('aprel.role')||''}catch(e){}
 const isAdmin=()=>role==='admin';
 const H=(extra={})=>({'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json',...(pin?{'x-pin':pin}:{}),...extra});
-const fromRow=r=>({id:r.id,code:r.code||'',kind:r.kind||'Квартира',rooms:r.rooms,area:r.area!=null?+r.area:null,cond:r.cond||'',district:r.district||'',zone:r.zone||'',floor:r.floor,floors:r.floors,price:r.price!=null?+r.price:null,priceNote:r.price_note||'',agent:r.agent||'',date:r.date||'',note:r.note||'',createdAt:(r.created_at||'').slice(0,10),updatedBy:r.updated_by||'',createdBy:r.created_by||''});
-const toRow=d=>({code:d.code,kind:d.kind,rooms:d.rooms,area:d.area,cond:d.cond,district:d.district,zone:d.zone,floor:d.floor,floors:d.floors,price:d.price,price_note:d.priceNote,agent:d.agent,date:d.date||null,note:d.note,updated_at:new Date().toISOString(),updated_by:who});
+const fromRow=r=>({id:r.id,code:r.code||'',kind:r.kind||'Квартира',rooms:r.rooms,area:r.area!=null?+r.area:null,cond:r.cond||'',district:r.district||'',zone:r.zone||'',floor:r.floor,floors:r.floors,price:r.price!=null?+r.price:null,priceNote:r.price_note||'',agent:r.agent||'',date:r.date||'',note:r.note||'',createdAt:(r.created_at||'').slice(0,10),updatedBy:r.updated_by||'',createdBy:r.created_by||'',photos:Array.isArray(r.photos)?r.photos:[]});
+const PH_URL='https://hyjrnqriexntknvviyuo.supabase.co/storage/v1/object/public/photos/';
+const phSrc=p=>PH_URL+p;
+const toRow=d=>({code:d.code,kind:d.kind,rooms:d.rooms,area:d.area,cond:d.cond,district:d.district,zone:d.zone,floor:d.floor,floors:d.floors,price:d.price,price_note:d.priceNote,agent:d.agent,date:d.date||null,note:d.note,photos:d.photos||[],updated_at:new Date().toISOString(),updated_by:who});
 async function loadAll(){
   setStatus('','Загрузка…');
   try{
@@ -550,7 +598,7 @@ async function loadAll(){
     items=all.map(fromRow); loaded=true; setStatus('ok',items.length+' объектов'); refreshAgents(); render();
   }catch(e){loaded=true;setStatus('err','Нет связи с базой');render();toast('Не удалось загрузить базу')}
 }
-function applyAuth(){canWrite=!!pin&&!!role;$('addBtn').hidden=!canWrite;$('whoBtn').textContent=canWrite?((who||'Редактор')+(isAdmin()?' · админ':'')):'Войти'}
+function applyAuth(){canWrite=!!pin&&!!role;$('addBtn').hidden=!canWrite;$('dlXlsx').hidden=!isAdmin();$('whoBtn').textContent=canWrite?((who||'Редактор')+(isAdmin()?' · админ':'')):'Войти'}
 applyAuth(); loadAll();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!openSheet)loadAll()});
 
