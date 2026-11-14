@@ -295,9 +295,9 @@ textarea.in{height:auto;min-height:72px;padding:10px 12px;resize:vertical}
 <section class="sheet" id="login" aria-label="Вход">
   <div class="sh-head"><h2>Режим редактирования</h2><button class="x" type="button" data-close aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
   <div class="sh-body">
-    <div class="d-sub">Смотреть базу могут все. Чтобы добавлять и менять объекты, введите имя и код агентства.</div>
+    <div class="d-sub">Смотреть базу могут все. Введите имя и код: код агента позволяет добавлять объекты, код администратора — ещё изменять и удалять.</div>
     <div class="f"><label for="lName">Ваше имя</label><input class="in" id="lName" placeholder="Алишер" autocomplete="name"></div>
-    <div class="f"><label for="lPin">Код агентства</label><input class="in" id="lPin" type="password" inputmode="numeric" placeholder="••••" autocomplete="off"></div>
+    <div class="f"><label for="lPin">Код</label><input class="in" id="lPin" type="password" inputmode="numeric" placeholder="••••" autocomplete="off"></div>
     <div class="err" id="lErr"></div>
     <div id="lOut" hidden><button class="btn s" type="button" id="logout">Выйти из режима редактирования</button></div>
   </div>
@@ -473,7 +473,7 @@ function showDetail(id){
     ['Площадь',d.area?(d.kind==='Участок'?d.area+' сот.':d.area+' м²'):'—'],
     ['Комнат',d.rooms??'—'],['Этаж',d.floor!=null?d.floor+(d.floors?' из '+d.floors:''):'—'],
     ['Состояние',d.cond==='С ремонтом'?'Таёр · с ремонтом':(d.cond||'—')],
-    ['Район',d.zone],['Ориентир',d.district||'—'],['Агент',d.agent||'—'],['Дата',fmtDate(d.date||d.createdAt)||'—'],...(d.updatedBy?[['Изменил',d.updatedBy]]:[]),
+    ['Район',d.zone],['Ориентир',d.district||'—'],['Агент',d.agent||'—'],['Дата',fmtDate(d.date||d.createdAt)||'—'],...(d.createdBy?[['Добавил',d.createdBy]]:[]),...(d.updatedBy&&d.updatedBy!==d.createdBy?[['Изменил',d.updatedBy]]:[]),
   ];
   $('dBody').innerHTML=`
     <div><div class="d-price">${d.price!=null?fmt(d.price)+' $':esc(d.priceNote||'Цена не указана')}</div>
@@ -481,9 +481,9 @@ function showDetail(id){
     <div class="kv">${kv.map(([k,v])=>`<div><small>${k}</small><b>${esc(v)}</b></div>`).join('')}</div>
     ${d.note?`<div class="f"><div class="lbl">Заметка</div><div>${esc(d.note)}</div></div>`:''}
     <div id="dConfirm"></div>`;
-  $('dFoot').innerHTML=canWrite?`<button class="btn d" type="button" id="dDel">Удалить</button><button class="btn p" type="button" id="dEdit">Изменить</button>`:`<button class="btn s" type="button" id="dLogin">Войти, чтобы изменить</button>`;
+  $('dFoot').innerHTML=isAdmin()?`<button class="btn d" type="button" id="dDel">Удалить</button><button class="btn p" type="button" id="dEdit">Изменить</button>`:canWrite?`<div class="d-sub">Изменять и удалять может только администратор</div>`:`<button class="btn s" type="button" id="dLogin">Войти</button>`;
   if(!canWrite)$('dLogin').onclick=()=>open('login');
-  if(canWrite){
+  if(isAdmin()){
     $('dEdit').onclick=()=>openEdit(d);
     $('dDel').onclick=()=>{$('dConfirm').innerHTML=`<div class="confirm"><div>Удалить объект ${esc(d.code||'')}? Это нельзя отменить.</div><div class="btns"><button class="btn s" type="button" id="cNo">Оставить</button><button class="btn d" type="button" id="cYes">Удалить</button></div></div>`;
       $('cNo').onclick=()=>$('dConfirm').innerHTML='';
@@ -520,7 +520,7 @@ $('eSave').onclick=async()=>{
   try{
     const r=editing
       ?await fetch(SB_URL+'flats?id=eq.'+editing.id,{method:'PATCH',headers:H({'Prefer':'return=representation'}),body:JSON.stringify(toRow(doc))})
-      :await fetch(SB_URL+'flats',{method:'POST',headers:H({'Prefer':'return=representation'}),body:JSON.stringify(toRow(doc))});
+      :await fetch(SB_URL+'flats',{method:'POST',headers:H({'Prefer':'return=representation'}),body:JSON.stringify({...toRow(doc),created_by:who})});
     if(!r.ok){$('eErr').textContent='Не удалось сохранить: '+await writeErr(r);$('eSave').disabled=false;return}
     const saved=fromRow((await r.json())[0]);
     const i=items.findIndex(x=>x.id===saved.id);if(i>=0)items[i]=saved;else items.push(saved);
@@ -532,10 +532,11 @@ $('eSave').onclick=async()=>{
 /* ---------- data (Supabase) ---------- */
 const SB_URL='https://hyjrnqriexntknvviyuo.supabase.co/rest/v1/';
 const SB_KEY='sb_publishable_iIucxGdYGR01fKS0TwZQAw_elwik0qL';
-let pin='',who='';
-try{pin=localStorage.getItem('aprel.pin')||'';who=localStorage.getItem('aprel.who')||''}catch(e){}
+let pin='',who='',role='';
+try{pin=localStorage.getItem('aprel.pin')||'';who=localStorage.getItem('aprel.who')||'';role=localStorage.getItem('aprel.role')||''}catch(e){}
+const isAdmin=()=>role==='admin';
 const H=(extra={})=>({'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json',...(pin?{'x-pin':pin}:{}),...extra});
-const fromRow=r=>({id:r.id,code:r.code||'',kind:r.kind||'Квартира',rooms:r.rooms,area:r.area!=null?+r.area:null,cond:r.cond||'',district:r.district||'',zone:r.zone||'',floor:r.floor,floors:r.floors,price:r.price!=null?+r.price:null,priceNote:r.price_note||'',agent:r.agent||'',date:r.date||'',note:r.note||'',createdAt:(r.created_at||'').slice(0,10),updatedBy:r.updated_by||''});
+const fromRow=r=>({id:r.id,code:r.code||'',kind:r.kind||'Квартира',rooms:r.rooms,area:r.area!=null?+r.area:null,cond:r.cond||'',district:r.district||'',zone:r.zone||'',floor:r.floor,floors:r.floors,price:r.price!=null?+r.price:null,priceNote:r.price_note||'',agent:r.agent||'',date:r.date||'',note:r.note||'',createdAt:(r.created_at||'').slice(0,10),updatedBy:r.updated_by||'',createdBy:r.created_by||''});
 const toRow=d=>({code:d.code,kind:d.kind,rooms:d.rooms,area:d.area,cond:d.cond,district:d.district,zone:d.zone,floor:d.floor,floors:d.floors,price:d.price,price_note:d.priceNote,agent:d.agent,date:d.date||null,note:d.note,updated_at:new Date().toISOString(),updated_by:who});
 async function loadAll(){
   setStatus('','Загрузка…');
@@ -549,7 +550,7 @@ async function loadAll(){
     items=all.map(fromRow); loaded=true; setStatus('ok',items.length+' объектов'); refreshAgents(); render();
   }catch(e){loaded=true;setStatus('err','Нет связи с базой');render();toast('Не удалось загрузить базу')}
 }
-function applyAuth(){canWrite=!!pin;$('addBtn').hidden=!canWrite;$('whoBtn').textContent=canWrite?(who||'Редактор'):'Войти'}
+function applyAuth(){canWrite=!!pin&&!!role;$('addBtn').hidden=!canWrite;$('whoBtn').textContent=canWrite?((who||'Редактор')+(isAdmin()?' · админ':'')):'Войти'}
 applyAuth(); loadAll();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!openSheet)loadAll()});
 
@@ -562,15 +563,15 @@ $('lGo').onclick=async()=>{
   $('lGo').disabled=true;
   try{
     const r=await fetch(SB_URL+'rpc/check_pin',{method:'POST',headers:H(),body:JSON.stringify({p})});
-    const ok=(await r.text())==='true';
-    if(!ok){$('lErr').textContent='Код неверный.';$('lGo').disabled=false;return}
-    pin=p;who=n;try{localStorage.setItem('aprel.pin',pin);localStorage.setItem('aprel.who',who)}catch(e){}
+    const rl=(await r.text()).replace(/"/g,'');
+    if(rl!=='admin'&&rl!=='agent'){$('lErr').textContent='Код неверный.';$('lGo').disabled=false;return}
+    pin=p;who=n;role=rl;try{localStorage.setItem('aprel.pin',pin);localStorage.setItem('aprel.who',who);localStorage.setItem('aprel.role',role)}catch(e){}
     applyAuth();closeAll();toast('Здравствуйте, '+who);
   }catch(e){$('lErr').textContent='Нет связи с базой.'}
   $('lGo').disabled=false;
 };
-$('logout').onclick=()=>{pin='';try{localStorage.removeItem('aprel.pin')}catch(e){}applyAuth();closeAll();toast('Режим просмотра')};
-async function writeErr(r){if(r.status===401||r.status===403){pin='';try{localStorage.removeItem('aprel.pin')}catch(e){}applyAuth();return 'Код больше не действует, войдите заново.'}return 'Ошибка '+r.status}
+$('logout').onclick=()=>{pin='';role='';try{localStorage.removeItem('aprel.pin');localStorage.removeItem('aprel.role')}catch(e){}applyAuth();closeAll();toast('Режим просмотра')};
+async function writeErr(r){if(r.status===401||r.status===403){pin='';role='';try{localStorage.removeItem('aprel.pin');localStorage.removeItem('aprel.role')}catch(e){}applyAuth();return 'Код больше не действует, войдите заново.'}return 'Ошибка '+r.status}
 
 /* excel */
 const stamp=()=>new Date().toISOString().slice(0,10);
