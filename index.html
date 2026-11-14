@@ -345,7 +345,7 @@ function sorter(a,b){
     case 'priceDesc':return (b.price??-1)-(a.price??-1);
     case 'areaDesc':return (b.area??0)-(a.area??0);
     case 'ppm':return (ppm(a)??1e12)-(ppm(b)??1e12);
-    default:return (b.createdAt||'').localeCompare(a.createdAt||'')||b.id.localeCompare(a.id);
+    default:return (b.createdAt||'').localeCompare(a.createdAt||'')||(b.id>a.id?1:b.id<a.id?-1:0);
   }
 }
 function activeCount(){
